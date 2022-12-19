@@ -1,55 +1,51 @@
 #include "monty.h"
 #include <stdio.h>
+#define _GNU_SOURCE
+#include <stdlib.h>
 
-globales_t globalvar = {NULL, NULL, NULL};
+bus_t bus = {NULL, NULL, NULL, 0};
 
 /**
- * main - entry point for the CLI program
- * @argc: count of arguments passed to the program
- * @argv: pointer to an array of char pointers to arguments
- * Return: EXIT_SUCCESS or EXIT_FAILURE
- */
+* main - function for monty code interpreter
+* @argc: argument count
+* @argv: argument value
+*
+* Return: 0 on success
+*/
+int main(int argc, char *argv[])
+{
+	char *content;
+	FILE *file;
+	size_t size = 0;
+	ssize_t read_line = 1;
+	stack_t *stack = NULL;
+	unsigned int counter = 0;
 
-int main(int argc, char **argv)
-{
-char *token = NULL;
-size_t line_buf_size = 0;
-int line_number = 0, flag = 0, flag2 = 0;
-ssize_t line_size;
-stack_t *stack = NULL;
-
-if (argc != 2)
-stderr_usage();
-globalvar.fd = fopen(argv[1], "r");
-if (globalvar.fd == NULL)
-stderr_fopen(argv[1]);
-line_size = getline(&globalvar.line_buf, &line_buf_size, globalvar.fd);
-if (globalvar.line_buf[0] == '#')
-line_size = getline(&globalvar.line_buf, &line_buf_size, globalvar.fd);
-while (line_size >= 0)
-{flag = 0;
-flag2 = 0;
-line_number++;
-token = strtok(globalvar.line_buf, DELIM);
-globalvar.token2 = strtok(NULL, DELIM);
-if (token == NULL)
-{flag2 = 1;
-nop(&stack, line_number); }
-if (flag2 == 0)
-{
-if (token[0] == '#')
-{
-line_size = getline(&globalvar.line_buf,
-&line_buf_size, globalvar.fd);
-flag = 1; }}
-if (flag == 0)
-{get_builtin(token, &stack, line_number);
-line_size = getline(&globalvar.line_buf, &line_buf_size,
-globalvar.fd); }}
-	
-free_dlistint(stack);
-free(globalvar.line_buf);
-globalvar.line_buf = NULL;
-fclose(globalvar.fd);
-return (EXIT_SUCCESS);
+	if (argc != 2)
+	{
+		fprintf(stderr, "USAGE: monty file\n");
+		exit(EXIT_FAILURE);
+	}
+	file = fopen(argv[1], "r");
+	bus.file = file;
+	if (!file)
+	{
+		fprintf(stderr, "Error: Can't open file %s\n", argv[1]);
+		exit(EXIT_FAILURE);
+	}
+	while (read_line > 0)
+	{
+		content = NULL;
+		read_line = getline(&content, &size, file);
+		bus.content = content;
+		counter++;
+		if (read_line > 0)
+		{
+			execute(content, &stack, counter, file);
+		}
+		free(content);
+	}
+	free_stack(stack);
+        fclose(file);
+return (0);
 }
